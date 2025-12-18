@@ -100,4 +100,45 @@ class User:
         """
         row = await db.fetch_one("SELECT COUNT(*) FROM users")
         return row[0] if row else 0
+    
+    @staticmethod
+    async def get_subscribed_count() -> int:
+        """
+        Возвращает количество подписанных пользователей.
+        
+        Returns:
+            Количество подписанных пользователей
+        """
+        row = await db.fetch_one("SELECT COUNT(*) FROM users WHERE is_subscribed = 1")
+        return row[0] if row else 0
+    
+    @staticmethod
+    async def get_unsubscribed_count() -> int:
+        """
+        Возвращает количество неподписанных пользователей.
+        
+        Returns:
+            Количество неподписанных пользователей
+        """
+        row = await db.fetch_one("SELECT COUNT(*) FROM users WHERE is_subscribed = 0")
+        return row[0] if row else 0
+    
+    @staticmethod
+    async def get_recent_users_count(days: int = 7) -> int:
+        """
+        Возвращает количество пользователей, зарегистрированных за последние N дней.
+        
+        Args:
+            days: Количество дней
+            
+        Returns:
+            Количество новых пользователей
+        """
+        from datetime import datetime, timedelta
+        cutoff_date = (datetime.now() - timedelta(days=days)).isoformat()
+        row = await db.fetch_one(
+            "SELECT COUNT(*) FROM users WHERE registered_at >= ?",
+            (cutoff_date,)
+        )
+        return row[0] if row else 0
 

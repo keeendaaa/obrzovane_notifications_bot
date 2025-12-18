@@ -520,6 +520,73 @@ async def cmd_send_test_notification(message: Message):
         )
 
 
+@router.message(Command("stats"))
+@router.message(Command("analytics"))
+async def cmd_stats(message: Message):
+    """
+    Показывает аналитику об использовании бота.
+    Доступно только администраторам.
+    """
+    if not is_admin(message.from_user.id):
+        await message.answer("❌ У вас нет прав администратора.")
+        return
+    
+    # Получаем статистику по пользователям
+    total_users = await User.get_all_users_count()
+    subscribed_users = await User.get_subscribed_count()
+    unsubscribed_users = await User.get_unsubscribed_count()
+    new_users_7d = await User.get_recent_users_count(7)
+    new_users_30d = await User.get_recent_users_count(30)
+    
+    # Получаем статистику по мероприятиям
+    total_events = await Event.get_all_count()
+    upcoming_events = await Event.get_upcoming_count()
+    past_events = await Event.get_past_count()
+    new_events_7d = await Event.get_recent_events_count(7)
+    new_events_30d = await Event.get_recent_events_count(30)
+    
+    # Статистика по форматам
+    format_stats = await Event.get_by_format_stats()
+    
+    # Статистика по уведомлениям
+    from database import db
+    notifications_sent = await db.fetch_one("SELECT COUNT(*) FROM sent_notifications")
+    notifications_count = notifications_sent[0] if notifications_sent else 0
+    
+    # Вычисляем процент подписки
+    subscription_rate = (subscribed_users / total_users * 100) if total_users > 0 else 0
+    
+    # Формируем сообщение
+    stats_text = (
+        "📊 <b>Аналитика использования бота</b>\n\n"
+        
+        "👥 <b>Пользователи:</b>\n"
+        f"• Всего пользователей: <b>{total_users}</b>\n"
+        f"• Подписаны: <b>{subscribed_users}</b> ({subscription_rate:.1f}%)\n"
+        f"• Не подписаны: <b>{unsubscribed_users}</b>\n"
+        f"• Новых за 7 дней: <b>{new_users_7d}</b>\n"
+        f"• Новых за 30 дней: <b>{new_users_30d}</b>\n\n"
+        
+        "📅 <b>Мероприятия:</b>\n"
+        f"• Всего мероприятий: <b>{total_events}</b>\n"
+        f"• Предстоящих: <b>{upcoming_events}</b>\n"
+        f"• Прошедших: <b>{past_events}</b>\n"
+        f"• Создано за 7 дней: <b>{new_events_7d}</b>\n"
+        f"• Создано за 30 дней: <b>{new_events_30d}</b>\n\n"
+        
+        "🎯 <b>Форматы мероприятий:</b>\n"
+        f"• Онлайн: <b>{format_stats['online']}</b>\n"
+        f"• Офлайн: <b>{format_stats['offline']}</b>\n"
+        f"• Гибрид: <b>{format_stats['hybrid']}</b>\n"
+        f"• Другие: <b>{format_stats['other']}</b>\n\n"
+        
+        "🔔 <b>Уведомления:</b>\n"
+        f"• Отправлено напоминаний: <b>{notifications_count}</b>\n"
+    )
+    
+    await message.answer(stats_text, parse_mode="HTML")
+
+
 @router.callback_query(F.data.startswith("delete_event_"))
 async def callback_delete_event(callback: CallbackQuery, state: FSMContext):
     """Обработчик кнопки удаления мероприятия"""

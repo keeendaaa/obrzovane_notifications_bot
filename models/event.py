@@ -177,6 +177,86 @@ class Event:
             ))
         return events
     
+    @staticmethod
+    async def get_all_count() -> int:
+        """
+        Возвращает общее количество мероприятий.
+        
+        Returns:
+            Количество мероприятий
+        """
+        row = await db.fetch_one("SELECT COUNT(*) FROM events")
+        return row[0] if row else 0
+    
+    @staticmethod
+    async def get_upcoming_count() -> int:
+        """
+        Возвращает количество предстоящих мероприятий.
+        
+        Returns:
+            Количество предстоящих мероприятий
+        """
+        current_time = datetime.now().isoformat()
+        row = await db.fetch_one(
+            "SELECT COUNT(*) FROM events WHERE event_datetime >= ?",
+            (current_time,)
+        )
+        return row[0] if row else 0
+    
+    @staticmethod
+    async def get_past_count() -> int:
+        """
+        Возвращает количество прошедших мероприятий.
+        
+        Returns:
+            Количество прошедших мероприятий
+        """
+        current_time = datetime.now().isoformat()
+        row = await db.fetch_one(
+            "SELECT COUNT(*) FROM events WHERE event_datetime < ?",
+            (current_time,)
+        )
+        return row[0] if row else 0
+    
+    @staticmethod
+    async def get_by_format_stats() -> dict:
+        """
+        Возвращает статистику по форматам мероприятий.
+        
+        Returns:
+            Словарь с количеством мероприятий по форматам
+        """
+        rows = await db.fetch_all(
+            "SELECT format, COUNT(*) FROM events GROUP BY format"
+        )
+        stats = {"online": 0, "offline": 0, "hybrid": 0, "other": 0}
+        for row in rows:
+            format_type = row[0] or "other"
+            if format_type in stats:
+                stats[format_type] = row[1]
+            else:
+                stats["other"] += row[1]
+        return stats
+    
+    @staticmethod
+    async def get_recent_events_count(days: int = 7) -> int:
+        """
+        Возвращает количество мероприятий, созданных за последние N дней.
+        
+        Args:
+            days: Количество дней
+            
+        Returns:
+            Количество новых мероприятий
+        """
+        from datetime import timedelta
+        cutoff_date = (datetime.now() - timedelta(days=days)).isoformat()
+        row = await db.fetch_one(
+            "SELECT COUNT(*) FROM events WHERE created_at >= ?",
+            (cutoff_date,)
+        )
+        return row[0] if row else 0
+    
     def format_message(self) -> str:
         """
         Форматирует мероприятие в читаемое сообщение для пользователя.

@@ -42,7 +42,8 @@ def get_admin_keyboard() -> ReplyKeyboardMarkup:
                 KeyboardButton(text="/delete_event")
             ],
             [
-                KeyboardButton(text="/send_test_notification")
+                KeyboardButton(text="/send_test_notification"),
+                KeyboardButton(text="/stats")
             ]
         ],
         resize_keyboard=True,
