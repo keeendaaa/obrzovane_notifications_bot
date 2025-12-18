@@ -42,6 +42,9 @@ wheels/
 *.log
 logs/
 
+# Deployment scripts
+deploy.sh
+
 # OS
 .DS_Store
 Thumbs.db
